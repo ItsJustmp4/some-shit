@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spck Website Creator + AI</title>
+<style>
+:root{
+  --bg:#0d1117; --bg2:#161b22; --bg3:#1c2330; --border:#2b3442;
+  --fg:#e6edf3; --muted:#8b98a9; --accent:#4f8cff; --accent2:#7c5cff;
+  --ok:#3fb950; --err:#f85149; --warn:#d29922;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font:14px/1.5 "Segoe UI",system-ui,sans-serif;display:flex;flex-direction:column;overflow:hidden}
+button{font:inherit;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--fg);border-radius:8px;padding:6px 12px;transition:.15s}
+button:hover{border-color:var(--accent);color:#fff}
+button.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#fff;font-weight:600}
+button.primary:hover{filter:brightness(1.15)}
+button:disabled{opacity:.5;cursor:default}
+input,select,textarea{font:inherit;background:var(--bg);border:1px solid var(--border);color:var(--fg);border-radius:8px;padding:7px 10px;outline:none;width:100%}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+label{font-size:12px;color:var(--muted);display:block;margin:10px 0 4px}
+code,kbd{font-family:Consolas,monospace}
+
+header{display:flex;align-items:center;gap:10px;padding:8px 14px;background:var(--bg2);border-bottom:1px solid var(--border);flex-wrap:wrap}
+.logo{font-weight:700;font-size:16px;white-space:nowrap}
+.logo span{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.logo .chip{font-size:10px;background:var(--accent2);color:#fff;border-radius:20px;padding:2px 8px;vertical-align:2px;margin-left:6px;-webkit-text-fill-color:#fff}
+header .spacer{flex:1}
+.hbtn{padding:6px 10px;font-size:13px}
+
+main{flex:1;display:grid;grid-template-columns:210px 1fr 1fr;min-height:0}
+
+aside{background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;padding:12px}
+aside h3{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:14px 0 8px}
+.file-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;cursor:pointer;color:var(--muted);font-family:Consolas,monospace;font-size:13px;border:1px solid transparent}
+.file-item:hover{background:var(--bg3);color:var(--fg)}
+.file-item.active{background:var(--bg3);border-color:var(--accent);color:var(--fg)}
+.file-item .dot{width:8px;height:8px;border-radius:50%;flex:none}
+.tpl{padding:9px 10px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;cursor:pointer;background:var(--bg3)}
+.tpl:hover{border-color:var(--accent)}
+.tpl b{display:block;font-size:13px}
+.tpl small{color:var(--muted)}
+
+.editor-pane{display:flex;flex-direction:column;min-width:0;border-right:1px solid var(--border)}
+.tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--border)}
+.tab{padding:9px 18px;cursor:pointer;color:var(--muted);font-family:Consolas,monospace;font-size:13px;border-right:1px solid var(--border);user-select:none}
+.tab.active{color:var(--fg);background:var(--bg);box-shadow:inset 0 2px 0 var(--accent)}
+#editor{flex:1;resize:none;border:none;border-radius:0;background:var(--bg);color:var(--fg);font-family:Consolas,"Courier New",monospace;font-size:13.5px;line-height:1.6;padding:14px 16px;tab-size:2;white-space:pre;overflow:auto}
+#editor:focus{border:none;box-shadow:inset 0 0 0 1px var(--accent)}
+.statusbar{display:flex;gap:16px;padding:5px 14px;background:var(--bg2);border-top:1px solid var(--border);font-size:12px;color:var(--muted)}
+.statusbar .ok{color:var(--ok)}
+
+.panel{display:flex;flex-direction:column;min-width:0}
+.panel-tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--border)}
+.ptab{flex:1;text-align:center;padding:9px;cursor:pointer;color:var(--muted);font-size:13px;font-weight:600;user-select:none}
+.ptab.active{color:var(--fg);box-shadow:inset 0 -2px 0 var(--accent)}
+.page{flex:1;display:none;min-height:0;flex-direction:column}
+.page.active{display:flex}
+#preview{width:100%;flex:1;border:none;background:#fff}
+
+.ai-settings{padding:12px;border-bottom:1px solid var(--border);background:var(--bg2);max-height:46%;overflow-y:auto}
+.ai-body{flex:1;display:flex;flex-direction:column;min-height:0}
+#chat{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+.msg{max-width:92%;padding:9px 12px;border-radius:12px;font-size:13.5px;white-space:pre-wrap;word-break:break-word}
+.msg.user{align-self:flex-end;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-bottom-right-radius:4px}
+.msg.bot{align-self:flex-start;background:var(--bg3);border:1px solid var(--border);border-bottom-left-radius:4px}
+.msg .apply-note{color:var(--ok);font-size:12px;margin-top:6px}
+.msg .err-note{color:var(--err);font-size:12px;margin-top:6px}
+.prompt-row{display:flex;gap:8px;padding:12px;border-top:1px solid var(--border);background:var(--bg2)}
+#prompt{flex:1;resize:none;height:44px}
+.key-row{display:flex;gap:6px}
+.key-row input{flex:1}
+.eye{width:42px;flex:none;padding:0}
+.hint{font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.4}
+.hint a{color:var(--accent)}
+.badge{display:inline-block;font-size:10px;padding:1px 7px;border-radius:20px;margin-left:6px;vertical-align:1px}
+.badge.ok{background:rgba(63,185,80,.15);color:var(--ok)}
+.badge.warn{background:rgba(210,153,34,.15);color:var(--warn)}
+#tempVal{float:right;color:var(--fg)}
+
+#consoleLog{flex:1;overflow-y:auto;padding:12px;font-family:Consolas,monospace;font-size:12.5px;display:flex;flex-direction:column;gap:4px}
+.cl{padding:3px 8px;border-radius:6px;word-break:break-all}
+.cl.log{background:rgba(139,152,169,.08)}
+.cl.info{background:rgba(79,140,255,.1);color:#9cc0ff}
+.cl.warn{background:rgba(210,153,34,.12);color:var(--warn)}
+.cl.error{background:rgba(248,81,73,.12);color:var(--err)}
+.console-bar{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid var(--border);background:var(--bg2);font-size:12px;color:var(--muted)}
+
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--bg3);border:1px solid var(--accent);color:var(--fg);padding:10px 20px;border-radius:12px;opacity:0;pointer-events:none;transition:.25s;z-index:99;box-shadow:0 8px 30px rgba(0,0,0,.5);font-size:13px}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@media(max-width:980px){
+  main{grid-template-columns:1fr;grid-template-rows:auto 1fr 1fr}
+  aside{display:flex;gap:14px;border-right:none;border-bottom:1px solid var(--border)}
+  aside section{flex:1}
+  .editor-pane{border-right:none;border-bottom:1px solid var(--border)}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Spck <span>Creator</span><span class="chip">+ AI</span></div>
+  <button class="hbtn" id="btnSave" title="Ctrl+S">💾 Сохранить</button>
+  <button class="hbtn" id="btnExport">⬇ Экспорт HTML</button>
+  <button class="hbtn" id="btnFiles">📦 Скачать файлы</button>
+  <button class="hbtn" id="btnRun">▶ Запустить</button>
+  <div class="spacer"></div>
+  <button class="hbtn" id="btnNew">🗑 Новый проект</button>
+</header>
+
+<main>
+  <aside>
+    <section>
+      <h3>Файлы проекта</h3>
+      <div id="fileList"></div>
+    </section>
+    <section style="flex:2">
+      <h3>Шаблоны</h3>
+      <div id="tplList"></div>
+    </section>
+  </aside>
+
+  <div class="editor-pane">
+    <div class="tabs" id="edTabs"></div>
+    <textarea id="editor" spellcheck="false" wrap="off"></textarea>
+    <div class="statusbar">
+      <span id="stCursor">Стр 1, Кол 1</span>
+      <span id="stLang">HTML</span>
+      <span class="ok" id="stSaved"></span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-tabs">
+      <div class="ptab active" data-page="previewPage">Превью</div>
+      <div class="ptab" data-page="aiPage">🤖 ИИ</div>
+      <div class="ptab" data-page="consolePage">Консоль</div>
+    </div>
+
+    <div class="page active" id="previewPage">
+      <iframe id="preview" sandbox="allow-scripts allow-modals"></iframe>
+    </div>
+
+    <div class="page" id="aiPage">
+      <div class="ai-settings">
+        <label>Провайдер ИИ</label>
+        <select id="aiProvider"></select>
+        <label>API-ключ <a id="keyLink" href="#" target="_blank" style="float:right">где взять?</a></label>
+        <div class="key-row">
+          <input type="password" id="aiKey" placeholder="sk-..." autocomplete="off">
+          <button class="eye" id="btnEye" title="Показать">👁</button>
+        </div>
+        <label>Модель</label>
+        <input id="aiModel" list="modelList" placeholder="название модели">
+        <datalist id="modelList"></datalist>
+        <div id="customWrap" style="display:none">
+          <label>Endpoint (OpenAI-совместимый)</label>
+          <input id="aiEndpoint" placeholder="https://my-proxy.com/v1/chat/completions">
+        </div>
+        <label>Температура <span id="tempVal">0.7</span></label>
+        <input type="range" id="aiTemp" min="0" max="1.5" step="0.1" value="0.7">
+        <div class="hint" id="corsHint"></div>
+      </div>
+      <div class="ai-body">
+        <div id="chat"></div>
+        <div class="prompt-row">
+          <textarea id="prompt" placeholder="Опиши сайт, который нужно создать... (Ctrl+Enter — отправить)"></textarea>
+          <button class="primary" id="btnSend">Отправить</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="page" id="consolePage">
+      <div class="console-bar">
+        <span>Консоль превью</span>
+        <button class="hbtn" id="btnClearConsole">Очистить</button>
+      </div>
+      <div id="consoleLog"><div class="cl log">Консоль пуста — запустите превью.</div></div>
+    </div>
+  </div>
+</main>
+
+<div id="toast"></div>
+
+<script>
+"use strict";
+/* ================= STATE ================= */
+const LS = {proj:"spckai_project", prov:"spckai_provider", key:"spckai_key", model:"spckai_model", temp:"spckai_temp", ep:"spckai_endpoint", chat:"spckai_chat"};
+let files = { "index.html":"", "style.css":"", "script.js":"" };
+let activeFile = "index.html";
+let savedTimer = null;
+
+const STARTER = {
+"index.html": '<!DOCTYPE html>\n<html lang="ru">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>Мой сайт</title>\n</head>\n<body>\n  <header class="hero">\n    <h1>👋 Привет, это мой сайт</h1>\n    <p>Создано в Spck Creator + AI</p>\n    <button id="btn">Нажми меня</button>\n  </header>\n</body>\n</html>',
+"style.css": '* { margin:0; padding:0; box-sizing:border-box; font-family:system-ui,sans-serif; }\nbody { background:#0d1117; color:#e6edf3; min-height:100vh; display:flex; align-items:center; justify-content:center; }\n.hero { text-align:center; }\nh1 { font-size:2.4rem; margin-bottom:12px; }\np { color:#8b98a9; margin-bottom:24px; }\nbutton { background:linear-gradient(135deg,#4f8cff,#7c5cff); color:#fff; border:none; padding:12px 28px; border-radius:10px; font-size:16px; cursor:pointer; }\nbutton:hover { filter:brightness(1.15); }',
+"script.js": 'document.getElementById("btn").addEventListener("click", function(){\n  this.textContent = "🎉 Работает!";\n  console.log("Кнопка нажата:", new Date().toLocaleTimeString());\n});'
+};
+
+const TEMPLATES = [
+  {name:"Пустой проект", desc:"Начать с нуля", files:{"index.html":"<!DOCTYPE html>\n<html lang=\"ru\">\n<head>\n  <meta charset=\"UTF-8\">\n  <title>Новый сайт</title>\n</head>\n<body>\n  \n</body>\n</html>","style.css":"","script.js":""}},
+  {name:"Стартовый", desc:"Приветственная страница", files:STARTER},
+  {name:"Лендинг", desc:"Секции + призыв к действию", files:{
+"index.html": '<!DOCTYPE html>\n<html lang="ru">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>Лендинг</title>\n</head>\n<body>\n  <nav>\n    <b>🚀 МойПродукт</b>\n    <a href="#pricing" class="cta">Начать</a>\n  </nav>\n  <section class="hero">\n    <h1>Сделай больше<br>за меньшее время</h1>\n    <p>Инструмент нового поколения для вашей команды.</p>\n    <a href="#pricing" class="cta big">Попробовать бесплатно</a>\n  </section>\n  <section class="features">\n    <div class="card"><h3>⚡ Быстро</h3><p>Запуск за 5 минут.</p></div>\n    <div class="card"><h3>🔒 Надёжно</h3><p>Шифрование данных.</p></div>\n    <div class="card"><h3>💰 Выгодно</h3><p>Честные цены.</p></div>\n  </section>\n  <section class="pricing" id="pricing">\n    <div class="card price"><h3>Базовый</h3><div class="sum">0 ₽</div><a href="#" class="cta">Выбрать</a></div>\n    <div class="card price hot"><h3>Про</h3><div class="sum">990 ₽</div><a href="#" class="cta">Выбрать</a></div>\n  </section>\n  <footer>© 2026 МойПродукт</footer>\n</body>\n</html>',
+"style.css": '*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,sans-serif}\nbody{background:#0d1117;color:#e6edf3}\nnav{display:flex;justify-content:space-between;align-items:center;padding:18px 6%;position:sticky;top:0;background:rgba(13,17,23,.85);backdrop-filter:blur(8px)}\n.hero{text-align:center;padding:110px 20px 90px;background:radial-gradient(ellipse at top,#1c2330,#0d1117)}\nh1{font-size:3rem;line-height:1.15;margin-bottom:18px}\n.hero p{color:#8b98a9;font-size:1.15rem;margin-bottom:34px}\n.cta{background:linear-gradient(135deg,#4f8cff,#7c5cff);color:#fff;text-decoration:none;padding:10px 22px;border-radius:9px;font-weight:600}\n.cta.big{padding:15px 36px;font-size:1.05rem}\n.features,.pricing{display:flex;gap:20px;justify-content:center;padding:70px 6%;flex-wrap:wrap}\n.card{background:#161b22;border:1px solid #2b3442;border-radius:14px;padding:28px;width:260px;text-align:center}\n.card h3{margin-bottom:10px}\n.card p{color:#8b98a9}\n.price .sum{font-size:2.2rem;font-weight:700;margin:14px 0 20px}\n.hot{border-color:#4f8cff;transform:scale(1.05)}\nfooter{text-align:center;color:#8b98a9;padding:30px;border-top:1px solid #2b3442}',
+"script.js": 'console.log("Лендинг загружен");\ndocument.querySelectorAll(".cta").forEach(function(a){\n  a.addEventListener("click", function(e){\n    if(a.getAttribute("href") === "#"){ e.preventDefault(); console.log("Выбран тариф:", a.closest(".card").querySelector("h3").textContent); }\n  });\n});'
+  }},
+  {name:"Портфолио", desc:"Галерея работ", files:{
+"index.html": '<!DOCTYPE html>\n<html lang="ru">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>Портфолио</title>\n</head>\n<body>\n  <aside>\n    <h1>Аня<br>Козлова</h1>\n    <p class="sub">Дизайнер & разработчик</p>\n    <nav>\n      <a href="#works">Работы</a>\n      <a href="#about">Обо мне</a>\n      <a href="#contact">Контакты</a>\n    </nav>\n  </aside>\n  <main>\n    <section id="works">\n      <h2>Работы</h2>\n      <div class="grid">\n        <div class="work" style="--c1:#4f8cff;--c2:#7c5cff"><span>Проект 1</span></div>\n        <div class="work" style="--c1:#3fb950;--c2:#4f8cff"><span>Проект 2</span></div>\n        <div class="work" style="--c1:#d29922;--c2:#f85149"><span>Проект 3</span></div>\n        <div class="work" style="--c1:#7c5cff;--c2:#f85149"><span>Проект 4</span></div>\n      </div>\n    </section>\n    <section id="about"><h2>Обо мне</h2><p>Создаю интерфейсы, которые нравятся людям. 5 лет опыта в веб-дизайне и фронтенде.</p></section>\n    <section id="contact"><h2>Контакты</h2><p>hello@example.com</p></section>\n  </main>\n</body>\n</html>',
+"style.css": '*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,sans-serif}\nbody{display:flex;background:#0d1117;color:#e6edf3;min-height:100vh}\naside{width:260px;padding:50px 30px;border-right:1px solid #2b3442;position:sticky;top:0;height:100vh}\nh1{font-size:2rem;line-height:1.1}\n.sub{color:#8b98a9;margin:8px 0 36px}\nnav a{display:block;color:#e6edf3;text-decoration:none;padding:9px 0;font-size:1.05rem}\nnav a:hover{color:#4f8cff}\nmain{flex:1;padding:50px}\nh2{margin-bottom:22px}\n.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px;margin-bottom:60px}\n.work{aspect-ratio:4/3;border-radius:14px;background:linear-gradient(135deg,var(--c1),var(--c2));display:flex;align-items:flex-end;padding:16px;font-weight:700;color:#fff;cursor:pointer;transition:.25s}\n.work:hover{transform:translateY(-5px) scale(1.02)}\nsection p{color:#8b98a9;max-width:520px}\n#contact p{font-size:1.2rem;color:#e6edf3}\n@media(max-width:700px){body{flex-direction:column}aside{width:100%;height:auto;position:static}}',
+"script.js": 'document.querySelectorAll(".work").forEach(function(w){\n  w.addEventListener("click", function(){ console.log("Открыт проект:", w.textContent.trim()); });\n});'
+  }},
+  {name:"Магазин", desc:"Каталог товаров + корзина", files:{
+"index.html": '<!DOCTYPE html>\n<html lang="ru">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>Магазин</title>\n</head>\n<body>\n  <header>\n    <b>🛒 MiniShop</b>\n    <div class="cart">Корзина: <b id="cartTotal">0 ₽</b></div>\n  </header>\n  <div class="grid" id="grid"></div>\n</body>\n</html>',
+"style.css": '*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,sans-serif}\nbody{background:#0d1117;color:#e6edf3;padding:20px;max-width:1100px;margin:0 auto}\nheader{display:flex;justify-content:space-between;align-items:center;padding:14px 0 26px}\n.cart{background:#161b22;border:1px solid #2b3442;padding:9px 16px;border-radius:10px}\n.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:18px}\n.card{background:#161b22;border:1px solid #2b3442;border-radius:14px;padding:20px}\n.emoji{font-size:3rem;margin-bottom:12px}\n.card h3{margin-bottom:6px}\n.card small{color:#8b98a9;display:block;margin-bottom:14px}\n.row{display:flex;justify-content:space-between;align-items:center}\n.price{font-weight:700;font-size:1.15rem}\nbutton{background:linear-gradient(135deg,#4f8cff,#7c5cff);color:#fff;border:none;padding:9px 16px;border-radius:8px;cursor:pointer;font-weight:600}\nbutton:hover{filter:brightness(1.15)}',
+"script.js": 'var PRODUCTS = [\n  {emoji:"🎧", name:"Наушники", desc:"Беспроводные", price:4990},\n  {emoji:"⌚", name:"Смарт-часы", desc:"С пульсометром", price:8990},\n  {emoji:"⌨️", name:"Клавиатура", desc:"Механическая", price:6490},\n  {emoji:"🖱️", name:"Мышь", desc:"Игровая", price:2990},\n  {emoji:"📱", name:"Чехол", desc:"Для телефона", price:990},\n  {emoji:"🔊", name:"Колонка", desc:"Портативная", price:3990}\n];\nvar cart = 0;\nvar grid = document.getElementById("grid");\nPRODUCTS.forEach(function(p, i){\n  var el = document.createElement("div");\n  el.className = "card";\n  el.innerHTML = \'<div class="emoji">\' + p.emoji + \'</div><h3>\' + p.name + \'</h3><small>\' + p.desc + \'</small><div class="row"><span class="price">\' + p.price.toLocaleString("ru-RU") + \' ₽</span><button data-i="\' + i + \'">В корзину</button></div>\';\n  grid.appendChild(el);\n});\ndocument.getElementById("grid").addEventListener("click", function(e){\n  var b = e.target.closest("button"); if(!b) return;\n  cart += PRODUCTS[+b.dataset.i].price;\n  document.getElementById("cartTotal").textContent = cart.toLocaleString("ru-RU") + " ₽";\n  console.log("Добавлено:", PRODUCTS[+b.dataset.i].name);\n});'
+  }},
+  {name:"Блог", desc:"Список постов", files:{
+"index.html": '<!DOCTYPE html>\n<html lang="ru">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>Блог</title>\n</head>\n<body>\n  <header><h1>📓 Заметки разработчика</h1><input id="search" placeholder="Поиск по постам..."></header>\n  <div id="posts"></div>\n</body>\n</html>',
+"style.css": '*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,sans-serif}\nbody{background:#0d1117;color:#e6edf3;max-width:760px;margin:0 auto;padding:30px 18px}\nheader{margin-bottom:28px}\nh1{margin-bottom:18px}\ninput{background:#161b22;border:1px solid #2b3442;color:#e6edf3;padding:11px 14px;border-radius:10px;width:100%;font-size:15px}\n.post{background:#161b22;border:1px solid #2b3442;border-radius:14px;padding:22px;margin-bottom:16px;cursor:pointer;transition:.2s}\n.post:hover{border-color:#4f8cff;transform:translateX(4px)}\n.post h2{font-size:1.2rem;margin-bottom:8px}\n.post p{color:#8b98a9}\n.meta{font-size:12px;color:#4f8cff;margin-bottom:10px;text-transform:uppercase;letter-spacing:.08em}',
+"script.js": 'var POSTS = [\n  {t:"Как я встретил CSS-гриды", d:"12 окт 2026", x:"Спустя годы флоатов — гриды изменили всё. Рассказываю, как перестроить мозг."},\n  {t:"ИИ пишет код лучше меня?", d:"3 окт 2026", x:"Честный эксперимент: неделя разработки только с помощью нейросетей."},\n  {t:"10 мелочей в JS", d:"25 сен 2026", x:"Маленькие приёмы, которые делают код чище: от optional chaining до structuredClone."},\n  {t:"Почему я полюбил тёмную тему", d:"18 сен 2026", x:"Не только эстетика: о контрасте, читаемости и батарее ноутбука."}\n];\nfunction render(list){\n  document.getElementById("posts").innerHTML = list.map(function(p){\n    return \'<article class="post"><div class="meta">\' + p.d + \'</div><h2>\' + p.t + \'</h2><p>\' + p.x + \'</p></article>\';\n  }).join("") || \'<p style="color:#8b98a9">Ничего не найдено.</p>\';\n}\nrender(POSTS);\ndocument.getElementById("search").addEventListener("input", function(e){\n  var q = e.target.value.toLowerCase();\n  render(POSTS.filter(function(p){ return (p.t + p.x).toLowerCase().indexOf(q) !== -1; }));\n});'
+  }}
+];
+
+/* ================= PROVIDERS ================= */
+const PROVIDERS = {
+  gemini:     {name:"Google Gemini", type:"gemini", endpoint:"https://generativelanguage.googleapis.com/v1beta/models/", models:["gemini-2.5-flash","gemini-2.5-pro","gemini-2.0-flash"], keyUrl:"https://aistudio.google.com/apikey", cors:true,
+               hint:"Работает прямо из браузера (CORS разрешён). Бесплатный ключ в AI Studio."},
+  groq:       {name:"Groq", type:"openai", endpoint:"https://api.groq.com/openai/v1/chat/completions", models:["llama-3.3-70b-versatile","llama-3.1-8b-instant","qwen-qwq-32b"], keyUrl:"https://console.groq.com/keys", cors:true,
+               hint:"Очень быстрые модели, CORS разрешён."},
+  openrouter: {name:"OpenRouter", type:"openai", endpoint:"https://openrouter.ai/api/v1/chat/completions", models:["google/gemini-2.5-flash","openai/gpt-4o-mini","anthropic/claude-sonnet-4","deepseek/deepseek-chat"], keyUrl:"https://openrouter.ai/keys", cors:true,
+               hint:"Доступ ко всем моделям через один ключ, CORS разрешён."},
+  openai:     {name:"OpenAI", type:"openai", endpoint:"https://api.openai.com/v1/chat/completions", models:["gpt-4o-mini","gpt-4o","gpt-4.1-mini","gpt-4.1"], keyUrl:"https://platform.openai.com/api-keys", cors:false,
+               hint:"⚠️ api.openai.com может блокировать запросы из браузера (CORS). Если не работает — используйте OpenRouter или свой прокси."},
+  anthropic:  {name:"Anthropic Claude", type:"anthropic", endpoint:"https://api.anthropic.com/v1/messages", models:["claude-haiku-4-5-20251001","claude-sonnet-4-5","claude-opus-4-1"], keyUrl:"https://console.anthropic.com/settings/keys", cors:false,
+               hint:"⚠️ Anthropic API блокирует браузерные запросы. Через OpenRouter (anthropic/...) работает."},
+  deepseek:   {name:"DeepSeek", type:"openai", endpoint:"https://api.deepseek.com/chat/completions", models:["deepseek-chat","deepseek-reasoner"], keyUrl:"https://platform.deepseek.com/api_keys", cors:false,
+               hint:"⚠️ Может блокировать CORS. Альтернатива — OpenRouter (deepseek/deepseek-chat)."},
+  custom:     {name:"Свой endpoint", type:"openai", endpoint:"", models:[], keyUrl:"", cors:true,
+               hint:"Укажите OpenAI-совместимый endpoint — например свой прокси (CORS должен быть разрешён)."}
+};
+
+const SYSTEM_PROMPT = "Ты — ИИ-ассистент внутри веб-IDE Spck Creator. Тебе доступны три файла проекта: index.html, style.css, script.js. " +
+"Текущие файлы присланы ниже. Твоя задача — вернуть ОБНОВЛЁННЫЕ полные версии всех трёх файлов, каждый в отдельном блоке кода: ```html (содержимое index.html БЕЗ тегов <style> и <script>), ```css (весь style.css), ```js (весь script.js). " +
+"Пиши код полностью, без сокращений и «// остальное без изменений». Ответ на русском. После блоков кода добавь 1-2 предложения о том, что сделано. " +
+"Если в style.css или script.js ничего не меняется — всё равно верни их полные версии.";
+
+/* ================= HELPERS ================= */
+const $ = function(id){ return document.getElementById(id); };
+function toast(msg){ var t = $("toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(t._h); t._h = setTimeout(function(){ t.classList.remove("show"); }, 2600); }
+function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+/* ================= FILES / TABS ================= */
+function renderFiles(){
+  $("fileList").innerHTML = Object.keys(files).map(function(f){
+    var color = f.endsWith(".html") ? "#f85149" : f.endsWith(".css") ? "#4f8cff" : "#d29922";
+    return '<div class="file-item' + (f === activeFile ? " active" : "") + '" data-f="' + f + '"><span class="dot" style="background:' + color + '"></span>' + f + '</div>';
+  }).join("");
+  $("edTabs").innerHTML = Object.keys(files).map(function(f){
+    return '<div class="tab' + (f === activeFile ? " active" : "") + '" data-f="' + f + '">' + f + '</div>';
+  }).join("");
+  var lang = activeFile.endsWith(".html") ? "HTML" : activeFile.endsWith(".css") ? "CSS" : "JavaScript";
+  $("stLang").textContent = lang;
+}
+$("fileList").addEventListener("click", function(e){ var it = e.target.closest(".file-item"); if(it) openFile(it.dataset.f); });
+$("edTabs").addEventListener("click", function(e){ var it = e.target.closest(".tab"); if(it) openFile(it.dataset.f); });
+function openFile(f){ files[activeFile] = $("editor").value; activeFile = f; $("editor").value = files[f]; renderFiles(); updateCursor(); }
+$("editor").addEventListener("input", function(){ files[activeFile] = this.value; scheduleRun(); setSaved("● Не сохранено", "#d29922"); });
+$("editor").addEventListener("keydown", function(e){
+  if(e.key === "Tab"){ e.preventDefault(); var s = this.selectionStart, en = this.selectionEnd;
+    this.value = this.value.slice(0, s) + "  " + this.value.slice(en);
+    this.selectionStart = this.selectionEnd = s + 2; files[activeFile] = this.value; scheduleRun(); }
+  if(e.key === "s" && (e.ctrlKey || e.metaKey)){ e.preventDefault(); saveProject(); }
+});
+$("editor").addEventListener("click", updateCursor);
+$("editor").addEventListener("keyup", updateCursor);
+function updateCursor(){ var t = $("editor"), pos = t.selectionStart, before = t.value.slice(0, pos).split("\n");
+  $("stCursor").textContent = "Стр " + before.length + ", Кол " + (before[before.length-1].length + 1); }
+
+/* ================= TEMPLATES ================= */
+$("tplList").innerHTML = TEMPLATES.map(function(t, i){ return '<div class="tpl" data-i="' + i + '"><b>' + t.name + '</b><small>' + t.desc + '</small></div>'; }).join("");
+$("tplList").addEventListener("click", function(e){ var it = e.target.closest(".tpl"); if(!it) return;
+  files = JSON.parse(JSON.stringify(TEMPLATES[+it.dataset.i].files));
+  if(!files["style.css"]) files["style.css"] = "";
+  if(!files["script.js"]) files["script.js"] = "";
+  activeFile = "index.html"; $("editor").value = files["index.html"];
+  renderFiles(); runPreview(); toast("Шаблон «" + TEMPLATES[+it.dataset.i].name + "» загружен"); });
+
+/* ================= PREVIEW ================= */
+let runTimer = null;
+function scheduleRun(){ clearTimeout(runTimer); runTimer = setTimeout(runPreview, 1500); }
+function runPreview(){
+  files[activeFile] = $("editor").value;
+  var html = files["index.html"] || "";
+  var css = files["style.css"] || "";
+  var js = files["script.js"] || "";
+  var hook = "<script>['log','info','warn','error'].forEach(function(l){var o=console[l];console[l]=function(){try{var parts=[].map.call(arguments,function(a){if(a instanceof Error)return a.message;try{return typeof a==='object'?JSON.stringify(a):String(a)}catch(e){return String(a)}});parent.postMessage({spckConsole:1,level:l,text:parts.join(' ')},'*')}catch(e){}if(o)o.apply(console,arguments)}});window.onerror=function(m,s,ln){parent.postMessage({spckConsole:1,level:'error',text:m+' (строка '+ln+')'},'*')}<\/script>";
+  var userJs = "<script>try{" + js.replace(/<\/script/gi, "<\\/script") + "\n}catch(e){parent.postMessage({spckConsole:1,level:'error',text:'JS: '+e.message},'*')}<\/script>";
+  var doc;
+  if(/<\/body>/i.test(html)) doc = html.replace(/<\/body>/i, "<style>" + css + "<\/style>" + hook + userJs + "<\/body>");
+  else doc = html + "<style>" + css + "<\/style>" + hook + userJs;
+  if(!/<style[\s>]/i.test(doc)) doc = doc.replace(/<\/head>/i, "<style>" + css + "<\/style><\/head>");
+  $("preview").srcdoc = doc;
+}
+window.addEventListener("message", function(e){
+  var d = e.data; if(!d || d.spckConsole !== 1) return;
+  addConsole(d.level, d.text);
+});
+function addConsole(level, text){
+  var log = $("consoleLog");
+  if(log.firstChild && log.firstChild.textContent.indexOf("Консоль пуста") === 0) log.innerHTML = "";
+  var div = document.createElement("div");
+  div.className = "cl " + level;
+  div.textContent = "[" + level + "] " + text;
+  log.appendChild(div); log.scrollTop = log.scrollHeight;
+}
+$("btnClearConsole").addEventListener("click", function(){ $("consoleLog").innerHTML = '<div class="cl log">Консоль очищена.</div>'; });
+$("btnRun").addEventListener("click", function(){ runPreview(); toast("Превью обновлено"); });
+
+/* ================= PANEL TABS ================= */
+document.querySelectorAll(".ptab").forEach(function(t){
+  t.addEventListener("click", function(){
+    document.querySelectorAll(".ptab").forEach(function(x){ x.classList.remove("active"); });
+    document.querySelectorAll(".page").forEach(function(x){ x.classList.remove("active"); });
+    t.classList.add("active"); $(t.dataset.page).classList.add("active");
+  });
+});
+
+/* ================= SAVE / EXPORT ================= */
+function setSaved(text, color){ var el = $("stSaved"); el.textContent = text; el.style.color = color || ""; }
+function saveProject(){
+  files[activeFile] = $("editor").value;
+  localStorage.setItem(LS.proj, JSON.stringify(files));
+  setSaved("✓ Сохранено " + new Date().toLocaleTimeString(), "var(--ok)");
+  toast("Проект сохранён в localStorage");
+}
+$("btnSave").addEventListener("click", saveProject);
+function download(name, content){
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([content], {type:"text/plain;charset=utf-8"}));
+  a.download = name; a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+}
+$("btnExport").addEventListener("click", function(){
+  files[activeFile] = $("editor").value;
+  var html = files["index.html"] || "";
+  var css = files["style.css"] || "", js = files["script.js"] || "";
+  var doc;
+  if(/<\/head>/i.test(html)) doc = html.replace(/<\/head>/i, "<style>\n" + css + "\n<\/style>\n<\/head>");
+  else doc = "<style>\n" + css + "\n<\/style>\n" + html;
+  if(/<\/body>/i.test(doc)) doc = doc.replace(/<\/body>/i, "<script>\n" + js + "\n<\/script>\n<\/body>");
+  else doc += "\n<script>\n" + js + "\n<\/script>";
+  download("site.html", doc); toast("Скачан единый site.html");
+});
+$("btnFiles").addEventListener("click", function(){
+  files[activeFile] = $("editor").value;
+  download("index.html", files["index.html"]);
+  setTimeout(function(){ download("style.css", files["style.css"]); }, 400);
+  setTimeout(function(){ download("script.js", files["script.js"]); }, 800);
+  toast("Скачаны 3 файла проекта");
+});
+$("btnNew").addEventListener("click", function(){
+  if(!confirm("Создать новый проект? Текущий несохранённый код будет заменён.")) return;
+  files = JSON.parse(JSON.stringify(STARTER)); activeFile = "index.html";
+  $("editor").value = files["index.html"]; renderFiles(); runPreview(); toast("Новый проект создан");
+});
+
+/* ================= AI SETTINGS ================= */
+const provSel = $("aiProvider");
+provSel.innerHTML = Object.keys(PROVIDERS).map(function(k){ return '<option value="' + k + '">' + PROVIDERS[k].name + "</option>"; }).join("");
+function loadSettings(){
+  var p = localStorage.getItem(LS.prov); if(p && PROVIDERS[p]) provSel.value = p;
+  $("aiKey").value = localStorage.getItem(LS.key) || "";
+  $("aiModel").value = localStorage.getItem(LS.model) || "";
+  $("aiTemp").value = localStorage.getItem(LS.temp) || "0.7";
+  $("aiEndpoint").value = localStorage.getItem(LS.ep) || "";
+  $("tempVal").textContent = $("aiTemp").value;
+  onProviderChange(false);
+}
+function onProviderChange(save){
+  var p = PROVIDERS[provSel.value];
+  $("modelList").innerHTML = p.models.map(function(m){ return '<option value="' + m + '">'; }).join("");
+  if(save || !$("aiModel").value) $("aiModel").value = p.models[0] || "";
+  $("customWrap").style.display = provSel.value === "custom" ? "block" : "none";
+  $("keyLink").style.display = p.keyUrl ? "" : "none";
+  if(p.keyUrl) $("keyLink").href = p.keyUrl;
+  $("corsHint").innerHTML = (p.hint || "") + (p.cors ? ' <span class="badge ok">CORS OK</span>' : ' <span class="badge warn">CORS риск</span>');
+  if(save){
+    localStorage.setItem(LS.prov, provSel.value);
+    localStorage.setItem(LS.model, $("aiModel").value);
+    if(provSel.value === "custom") localStorage.setItem(LS.ep, $("aiEndpoint").value.trim());
+  }
+}
+provSel.addEventListener("change", function(){ onProviderChange(true); });
+$("aiKey").addEventListener("change", function(){ localStorage.setItem(LS.key, this.value.trim()); toast("API-ключ сохранён локально"); });
+$("aiModel").addEventListener("change", function(){ localStorage.setItem(LS.model, this.value.trim()); });
+$("aiTemp").addEventListener("input", function(){ $("tempVal").textContent = this.value; });
+$("aiTemp").addEventListener("change", function(){ localStorage.setItem(LS.temp, this.value); });
+$("aiEndpoint").addEventListener("change", function(){ localStorage.setItem(LS.ep, this.value.trim()); });
+$("btnEye").addEventListener("click", function(){ var i = $("aiKey"); i.type = i.type === "password" ? "text" : "password"; });
+
+/* ================= CHAT ================= */
+let chat = [];
+try{ chat = JSON.parse(localStorage.getItem(LS.chat) || "[]"); }catch(e){ chat = []; }
+function renderChat(){
+  $("chat").innerHTML = chat.map(function(m){
+    if(m.role === "user") return '<div class="msg user">' + esc(m.text) + "</div>";
+    var extra = "";
+    if(m.applied) extra = '<div class="apply-note">✅ Код применён в редактор</div>';
+    if(m.error) extra = '<div class="err-note">⚠️ ' + esc(m.error) + "</div>";
+    return '<div class="msg bot">' + esc(m.text) + extra + "</div>";
+  }).join("");
+  $("chat").scrollTop = $("chat").scrollHeight;
+}
+function pushMsg(m){ chat.push(m); if(chat.length > 60) chat = chat.slice(-60); localStorage.setItem(LS.chat, JSON.stringify(chat)); renderChat(); }
+
+function parseBlocks(text){
+  var out = {}, re = /```(html|css|js|javascript|style|script)?\s*\n?([\s\S]*?)```/gi, m;
+  while((m = re.exec(text))){
+    var lang = (m[1] || "").toLowerCase(), body = m[2].replace(/\n$/, "");
+    if(lang === "javascript" || lang === "script") lang = "js";
+    if(lang === "style") lang = "css";
+    if(!lang){
+      if(/^\s*</.test(body)) lang = "html";
+      else if(/[{;}]/.test(body) && !/function|var |let |const /.test(body)) lang = "css";
+      else lang = "js";
+    }
+    if(lang === "html") out["index.html"] = body;
+    else if(lang === "css") out["style.css"] = body;
+    else if(lang === "js") out["script.js"] = body;
+  }
+  return (out["index.html"] !== undefined || out["style.css"] !== undefined || out["script.js"] !== undefined) ? out : null;
+}
+function stripBlocks(text){ return text.replace(/```[\s\S]*?```/g, "").trim(); }
+
+function applyBlocks(blocks){
+  Object.keys(blocks).forEach(function(f){ files[f] = blocks[f]; });
+  $("editor").value = files[activeFile];
+  renderFiles(); runPreview();
+}
+
+/* ================= AI REQUEST ================= */
+async function callAI(userText){
+  var p = PROVIDERS[provSel.value];
+  var key = $("aiKey").value.trim();
+  var model = $("aiModel").value.trim() || p.models[0] || "";
+  var temp = parseFloat($("aiTemp").value) || 0.7;
+  if(!key) throw new Error("Введите API-ключ для " + p.name);
+  if(provSel.value === "custom" && !$("aiEndpoint").value.trim()) throw new Error("Укажите endpoint");
+
+  files[activeFile] = $("editor").value;
+  var ctx = "=== index.html ===\n" + files["index.html"] + "\n\n=== style.css ===\n" + files["style.css"] + "\n\n=== script.js ===\n" + files["script.js"];
+  var fullPrompt = userText + "\n\nТекущие файлы проекта:\n" + ctx;
+
+  if(p.type === "gemini"){
+    var ep = p.endpoint + encodeURIComponent(model) + ":generateContent?key=" + encodeURIComponent(key);
+    var r = await fetch(ep, {method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({contents:[{parts:[{text: SYSTEM_PROMPT + "\n\n" + fullPrompt}]}], generationConfig:{temperature: temp}})});
+    var d = await r.json().catch(function(){ return {}; });
+    if(!r.ok) throw new Error("Gemini " + r.status + ": " + (d.error && d.error.message ? d.error.message : r.statusText));
+    return d.candidates[0].content.parts.map(function(x){ return x.text; }).join("");
+  }
+  if(p.type === "anthropic"){
+    var r2 = await fetch(p.endpoint, {method:"POST", headers:{"Content-Type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+      body: JSON.stringify({model:model, max_tokens:4096, system:SYSTEM_PROMPT, messages:[{role:"user", content:fullPrompt}]})});
+    var d2 = await r2.json().catch(function(){ return {}; });
+    if(!r2.ok) throw new Error("Anthropic " + r2.status + ": " + (d2.error && d2.error.message ? d2.error.message : r2.statusText));
+    return d2.content.map(function(x){ return x.text; }).join("");
+  }
+  var endpoint = provSel.value === "custom" ? $("aiEndpoint").value.trim() : p.endpoint;
+  var r3 = await fetch(endpoint, {method:"POST", headers:{"Content-Type":"application/json","Authorization":"Bearer " + key},
+    body: JSON.stringify({model:model, temperature:temp, messages:[{role:"system", content:SYSTEM_PROMPT},{role:"user", content:fullPrompt}]})});
+  var d3 = await r3.json().catch(function(){ return {}; });
+  if(!r3.ok){
+    var msg = d3.error && d3.error.message ? d3.error.message : r3.statusText;
+    if(r3.status === 401) msg = "Неверный API-ключ (401)";
+    throw new Error(p.name + " " + r3.status + ": " + msg);
+  }
+  if(!d3.choices || !d3.choices[0]) throw new Error(p.name + ": пустой ответ API");
+  return d3.choices[0].message.content;
+}
+
+async function sendPrompt(){
+  var text = $("prompt").value.trim();
+  if(!text) return;
+  $("prompt").value = "";
+  pushMsg({role:"user", text:text});
+  var btn = $("btnSend"); btn.disabled = true; btn.textContent = "…";
+  var wait = document.createElement("div");
+  wait.className = "msg bot"; wait.textContent = "Думаю…";
+  $("chat").appendChild(wait); $("chat").scrollTop = $("chat").scrollHeight;
+  try{
+    var raw = await callAI(text);
+    wait.remove();
+    var blocks = parseBlocks(raw);
+    var summary = stripBlocks(raw) || "(только код)";
+    if(blocks){
+      applyBlocks(blocks);
+      pushMsg({role:"bot", text:summary, applied:true});
+      toast("ИИ обновил код проекта");
+    }else{
+      pushMsg({role:"bot", text:summary, error:"В ответе не найдено блоков кода — код не применён"});
+    }
+  }catch(err){
+    wait.remove();
+    var m = err.message || String(err);
+    if(err instanceof TypeError) m = "Сетевая ошибка / блокировка CORS. Попробуйте Gemini, Groq или OpenRouter — они разрешают браузерные запросы. (" + m + ")";
+    pushMsg({role:"bot", text:"Не удалось получить ответ.", error:m});
+  }
+  btn.disabled = false; btn.textContent = "Отправить";
+}
+$("btnSend").addEventListener("click", sendPrompt);
+$("prompt").addEventListener("keydown", function(e){
+  if(e.key === "Enter" && (e.ctrlKey || e.metaKey)){ e.preventDefault(); sendPrompt(); }
+});
+
+/* ================= INIT ================= */
+(function init(){
+  var saved = null;
+  try{ saved = JSON.parse(localStorage.getItem(LS.proj) || "null"); }catch(e){}
+  if(saved && saved["index.html"] !== undefined) files = saved; else files = JSON.parse(JSON.stringify(STARTER));
+  $("editor").value = files[activeFile];
+  renderFiles(); updateCursor(); loadSettings(); renderChat(); runPreview();
+})();
+</script>
+</body>
+</html>
